@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+.env
+.streamlit/secrets.toml
+saved_models/*.joblib
+saved_models/*.json
+database/*.db
+!saved_models/.gitkeep
+!database/.gitkeep
+
