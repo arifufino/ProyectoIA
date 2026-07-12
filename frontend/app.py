@@ -65,6 +65,11 @@ elif page == "Analizar comentario":
 
 elif page == "Entrenar modelo":
     st.header("Entrenar modelo")
+    st.write("Carga comentarios etiquetados nuevos. Se acumularán con los anteriores y el modelo se reentrenará con el conjunto completo.")
+    uploaded_file = st.file_uploader(
+        "Dataset nuevo (CSV)", type=["csv"],
+        help="Columnas: comentario, clasificacion. Categorías: positivo, neutral o negativo.",
+    )
     algorithm_label = st.selectbox("Algoritmo", ["Regresión logística", "Naive Bayes"])
     col1, col2 = st.columns(2)
     test_size = col1.slider("Proporción de prueba", 0.1, 0.5, 0.2, 0.05)
@@ -73,15 +78,34 @@ elif page == "Entrenar modelo":
     ngram_max = col2.selectbox("N-grama máximo", [1, 2, 3], index=1)
     max_iter = col1.number_input("Iteraciones máximas", 100, 5000, 1000, 100)
     alpha = col2.number_input("Alpha (Naive Bayes)", 0.01, 10.0, 1.0, 0.1)
-    if st.button("Entrenar", type="primary"):
+    button_label = "Agregar datos y entrenar" if uploaded_file else "Entrenar con datos acumulados"
+    if st.button(button_label, type="primary"):
         if ngram_min > ngram_max:
             st.warning("El n-grama mínimo no puede ser mayor al máximo.")
         else:
-            payload = {"algorithm": "logistic_regression" if algorithm_label.startswith("Regresión") else "naive_bayes", "test_size": test_size, "max_features": max_features, "ngram_min": ngram_min, "ngram_max": ngram_max, "max_iter": max_iter, "alpha": alpha}
+            payload = {
+                "algorithm": "logistic_regression" if algorithm_label.startswith("Regresión") else "naive_bayes",
+                "test_size": test_size, "max_features": max_features, "ngram_min": ngram_min,
+                "ngram_max": ngram_max, "max_iter": max_iter, "alpha": alpha,
+            }
             with st.spinner("Entrenando…"):
-                response = api_request("POST", "/api/train", json=payload)
+                if uploaded_file:
+                    response = api_request(
+                        "POST", "/api/train/upload",
+                        data={key: str(value) for key, value in payload.items()},
+                        files={"file": (uploaded_file.name, uploaded_file.getvalue(), "text/csv")},
+                    )
+                else:
+                    response = api_request("POST", "/api/train", json=payload)
             if response:
                 st.success(response["message"])
+                if "dataset" in response:
+                    dataset = response["dataset"]
+                    st.info(
+                        f"Dataset acumulado: {dataset['total_samples']} comentarios · "
+                        f"Nuevos: {dataset['added_samples']} · Duplicados omitidos: {dataset['duplicates_ignored']}"
+                    )
+                    st.write("Distribución por clase:", dataset["class_distribution"])
                 show_metrics(response["metrics"])
 
 elif page == "Métricas":
@@ -113,4 +137,3 @@ else:
     if info:
         st.subheader("Modelo actual")
         st.json(info)
-

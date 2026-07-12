@@ -26,7 +26,7 @@ def clean_text(value: object) -> str:
     return text.strip()
 
 
-def prepare_dataframe(frame: pd.DataFrame) -> pd.DataFrame:
+def prepare_dataframe(frame: pd.DataFrame, require_minimum: bool = True) -> pd.DataFrame:
     """Valida el esquema y devuelve datos limpios y sin duplicados."""
     missing = REQUIRED_COLUMNS - set(frame.columns)
     if missing:
@@ -41,25 +41,28 @@ def prepare_dataframe(frame: pd.DataFrame) -> pd.DataFrame:
     invalid = set(data["clasificacion"]) - VALID_CATEGORIES
     if invalid:
         raise DatasetError(f"Categorías incorrectas: {', '.join(sorted(invalid))}")
+    if data.empty:
+        raise DatasetError("El dataset no contiene comentarios válidos")
 
     counts = data["clasificacion"].value_counts()
-    absent = VALID_CATEGORIES - set(counts.index)
-    if absent:
-        raise DatasetError(f"Faltan categorías: {', '.join(sorted(absent))}")
-    too_small = {label: int(counts[label]) for label in VALID_CATEGORIES if counts[label] < MIN_SAMPLES_PER_CLASS}
-    if too_small:
-        details = ", ".join(f"{key}={value}" for key, value in sorted(too_small.items()))
-        raise DatasetError(
-            f"Dataset insuficiente: se requieren al menos {MIN_SAMPLES_PER_CLASS} registros por clase ({details})"
-        )
+    if require_minimum:
+        absent = VALID_CATEGORIES - set(counts.index)
+        if absent:
+            raise DatasetError(f"Faltan categorías: {', '.join(sorted(absent))}")
+        too_small = {label: int(counts[label]) for label in VALID_CATEGORIES if counts[label] < MIN_SAMPLES_PER_CLASS}
+        if too_small:
+            details = ", ".join(f"{key}={value}" for key, value in sorted(too_small.items()))
+            raise DatasetError(
+                f"Dataset insuficiente: se requieren al menos {MIN_SAMPLES_PER_CLASS} registros por clase ({details})"
+            )
     return data
 
 
-def load_dataset(path: str | Path) -> pd.DataFrame:
+def load_dataset(path: str | Path, require_minimum: bool = True) -> pd.DataFrame:
     """Lee un CSV UTF-8 y aplica todas las validaciones."""
     try:
         frame = pd.read_csv(path, encoding="utf-8")
     except (OSError, UnicodeError, pd.errors.ParserError) as exc:
         raise DatasetError(f"No se pudo leer el CSV: {exc}") from exc
-    return prepare_dataframe(frame)
+    return prepare_dataframe(frame, require_minimum=require_minimum)
 

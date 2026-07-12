@@ -8,6 +8,6 @@ __pycache__/
 saved_models/*.joblib
 saved_models/*.json
 database/*.db
+data/dataset_acumulado.csv
 !saved_models/.gitkeep
 !database/.gitkeep
-
