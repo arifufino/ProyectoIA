@@ -113,11 +113,6 @@ El dataset es pequeño, sintético y de demostración. No representa todos los d
 - Autenticación, roles, exportación y paneles por periodo.
 - Explicabilidad y revisión humana de casos inciertos.
 
-## Integrantes
-
-- Nombre: ____________________  Rol: ____________________
-- Nombre: ____________________  Rol: ____________________
-- Nombre: ____________________  Rol: ____________________
 
 Consulte [el manual de usuario](docs/manual_usuario.md) y [el manual técnico](docs/manual_tecnico.md) para más detalles.
 
